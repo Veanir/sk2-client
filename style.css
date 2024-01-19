@@ -1,0 +1,127 @@
+.hero-div{
+    background-color: #00ffdd;
+    display: grid;
+    grid-template-rows: 40% 20% 40%;
+    align-items: center;
+    justify-items: center;
+
+    border-radius: 2rem;
+
+}
+
+.status-button{
+    background-color: #ffffff;
+    border: none;
+    border-radius: 2rem;
+    margin: 10px;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 2rem;
+    filter: drop-shadow(0px 4px 4px rgba(173, 173, 173, 0.25));
+
+    transition: 0.3s;
+    z-index: 2;
+
+}
+
+.status-button:hover{
+    background-color: #00f0d0;
+    color: #ffffff;
+}
+
+.connect-button{
+    background-color: #ffffff;
+    border: none;
+    border-radius: 2rem;
+    margin: 10px;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 2rem;
+    filter: drop-shadow(0px 4px 4px rgba(173, 173, 173, 0.25));
+
+    transition: 0.3s;
+    z-index: 2;
+}
+
+.connect-button:hover{
+    background-color: #00f0d0;
+    color: #ffffff;
+}
+
+.grid-container {
+    margin-top: 2rem;
+    margin-left: 2rem;
+    margin-right: 2rem;
+    display: grid;
+    grid-template-rows: 70vh auto;
+    height: 100vh;
+}
+
+.hero-text {
+    font-size: 8rem;
+    font-weight: 700;
+    color: #ffffff84;
+    font-family: 'Roboto', sans-serif;
+
+    z-index: 1;
+
+    text-shadow: 0.3rem 0.3rem 0.3rem rgb(255, 255, 255);
+}
+
+.queue-element{
+    background-color: #00ffdd;
+    border-radius: 2rem;
+    margin: 10px;
+    padding:2rem;
+    font-size: 2rem;
+    filter: drop-shadow(0px 4px 4px rgba(173, 173, 173, 0.25));
+    transition: 0.3s;
+
+    display: flex;
+}
+
+.queue-element-idx{
+    font-size: 2rem;
+    font-weight: 700;
+    margin-right: 1rem;
+
+    background-color: #ffffff;
+    color: rgb(38, 38, 38);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.queue-element-filename{
+    font-size: 2rem;
+    font-weight: 500;
+    margin-right: 1rem;
+
+    background-color: #ffffff;
+    color: rgb(38, 38, 38);
+    border-radius: 1rem;
+    padding: 1rem;
+
+}
+
+.queue-element-button{
+    background-color: #ffffff;
+    border: none;
+    border-radius: 2rem;
+    padding: 1rem;
+    margin-right: 1rem;
+    cursor: pointer;
+    font-size: 2rem;
+    filter: drop-shadow(0px 4px 4px rgba(173, 173, 173, 0.25));
+
+    transition: 0.3s;
+
+}
+
+.queue-element-button:hover{
+    background-color: #00f0d0;
+    color: #ffffff;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+}

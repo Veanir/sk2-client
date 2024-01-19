@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+    <script type="text/javascript" src="pcm-player/pcm-player.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript">
+        // Ta funkcja zostanie wywołana po załadowaniu strony
+        function initWebSocket() {
+            // Utworzenie nowej instancji WebSocket.
+            console.log('Łączenie z serwerem WebSocket...');
+            var socket = new WebSocket('ws://localhost:3030');
+
+            // Sprawdzenie czy połączenie się udało
+            if (!socket) {
+                alert('Nie udało się połączyć z radyjkiem!');
+                return;
+            }
+
+            var connect_button = document.getElementById('lauch_button');
+            var play_status_button = document.getElementById('play_status_button');
+            var request_button = document.getElementById('request_button');
+            var rewind_button = document.getElementById('rewind_button');
+
+
+            var player = null;
+
+            // Połączenie otwarte
+            socket.onopen = function(event) {
+                console.log('Połączenie nawiązane');
+                connect_button.remove();
+                play_status_button.disabled = false;
+                request_button.disabled = false;
+                rewind_button.disabled = false;
+            };
+
+            // Obsługa przychodzących wiadomości
+            socket.onmessage = function(event) {
+                var message = event.data;
+                try{
+                    var data = JSON.parse(message);
+                    if(data.audio_block){
+
+                        if (!player)
+                            return;
+
+                        var audio = atob(data.audio_block.data);
+                        const binary_data = new Uint8Array(audio.length);
+                        for (let i = 0; i < audio.length; i++) {
+                            binary_data[i] = audio.charCodeAt(i);
+                        }
+
+                        player.feed(binary_data);
+                    }
+
+                    else if(data.metadata){
+                        const metadata = data.metadata;
+                        if(metadata.current){
+                            player = new PCMPlayer({
+                                encoding: '16bitInt',
+                                channels: metadata.current.channels,
+                                sampleRate: metadata.current.sampling_rate,
+                                flushingTime: 200
+                            });
+
+                            player.volume(0.5);
+                        }
+
+                        if(metadata.queue){
+                            clearQueue();
+                            metadata.queue.files.forEach((file, idx) => {
+                                filename = file.split('/').pop();
+                                createQueueElement(filename, idx);
+                            });
+
+                            if(metadata.queue.files.length > 0){
+                                setCurrentSong(metadata.queue.files[0].split('/').pop());
+                            }
+                            else{
+                                setCurrentSong('Brak utworów w kolejce');
+                            }
+                        }
+
+                        if(metadata.is_playing){
+                            document.getElementById('play_status_button').innerHTML = 'Stop';
+                        }
+                        else{
+                            document.getElementById('play_status_button').innerHTML = 'Play';
+                        }
+                    }
+                }
+                catch(e){
+                    console.error(e);
+                }
+            };
+
+            // Obsługa błędów
+            socket.onerror = function(event) {
+                console.error('Wystąpił błąd WebSocket');
+            };
+
+            // Połączenie zamknięte
+            socket.onclose = function(event) {
+                console.log('Połączenie zamknięte');
+            };
+
+            function createQueueElement(filename, idx){
+                const queue = document.getElementById('queue');
+                const element = document.createElement('div');
+                element.classList.add('queue-element');
+                element.innerHTML = `
+                    <div class="queue-element-idx">${idx}</div>
+                    <div class="queue-element-filename">${filename}</div>
+                `;
+
+                const swap_right_button = document.createElement('button');
+                const skip_button = document.createElement('button');
+                const swap_left_button = document.createElement('button');
+
+                swap_right_button.classList.add('queue-element-button');
+                skip_button.classList.add('queue-element-button');
+                swap_left_button.classList.add('queue-element-button');
+
+                swap_left_button.innerHTML = '⇦';
+                skip_button.innerHTML = 'Usuń';
+                swap_right_button.innerHTML = '⇨';
+
+                element.appendChild(swap_left_button);
+                element.appendChild(skip_button);
+                element.appendChild(swap_right_button);
+
+                swap_right_button.onclick = function(){
+                    socket.send(JSON.stringify({
+                        type: 'command',
+                        command: 'swap',
+                        idx1: idx,
+                        idx2: idx + 1
+                    }));
+                }
+
+                swap_left_button.onclick = function(){
+                    socket.send(JSON.stringify({
+                        type: 'command',
+                        command: 'swap',
+                        idx1: idx,
+                        idx2: idx - 1
+                    }));
+                }
+
+                skip_button.onclick = function(){
+                    socket.send(JSON.stringify({
+                        type: 'command',
+                        command: 'skip',
+                        idx: idx
+                    }));
+                }
+
+                queue.appendChild(element);
+            }
+
+            function clearQueue(){
+                const queue = document.getElementById('queue');
+                while (queue.firstChild) {
+                    queue.removeChild(queue.firstChild);
+                }
+            }
+
+            play_status_button.onclick = function(){
+                socket.send(JSON.stringify({
+                    type: 'command',
+                    command: 'cplay'
+                }));
+            }
+
+            request_button.onclick = function(){
+                socket.send(JSON.stringify({
+                    type: 'command',
+                    command: 'get_song'
+                }));
+            }
+
+            rewind_button.onclick = function(){
+                socket.send(JSON.stringify({
+                    type: 'command',
+                    command: 'rewind'
+                }));
+            }
+
+            file_input = document.getElementById('file_input');
+
+            file_input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    data = e.target.result;
+
+                    let binary = '';
+                    const bytes = new Uint8Array(data);
+                    const len = bytes.byteLength;
+
+                    for (let i = 0; i < len; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+
+                    const base64Data = btoa(binary);
+                    socket.send(JSON.stringify({
+                        type: 'command',
+                        command: 'push_audio',
+                        file_name: file.name,
+                        data: base64Data
+                    }));
+                };
+                reader.readAsArrayBuffer(file);
+            }, false);
+
+        }
+        
+        
+        function setCurrentSong(song){
+            const song_name = document.getElementById('audio-name');
+            song_name.innerHTML = song;
+
+    }
+
+    </script>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="hero-div">
+            <h1 class="hero-text">Radio </h1>
+            <div>
+                <button id="lauch_button" onclick="initWebSocket();" class="connect-button">Połącz</button>
+                <button id="request_button" onclick="requestNewSong();" class="status-button" disabled>Nowy utwór</button>
+                <button id="play_status_button" class="status-button" disabled>Play</button>
+                <button id="rewind_button" class="status-button" disabled>Przewiń</button>
+            </div>
+            <h1 class="hero-text" id="audio-name">Nazwa utworu</h1>
+        </div>
+        <div id="queue"></div>
+    <!-- <input type="file" id="file_input" accept="audio/mpeg"> -->
+    </div>
+</body>
+</html>
